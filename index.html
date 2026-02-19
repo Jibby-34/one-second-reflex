@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One-Second Reflex</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #09090f;
+      --surface: #11111f;
+      --border:  #1d1d38;
+      --text:    #ddddf0;
+      --muted:   #4a4a65;
+      --cyan:    #00d4ff;
+      --green:   #00ff88;
+      --red:     #ff4455;
+      --orange:  #ff8844;
+      --gold:    #ffd700;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── TOP AD ── */
+    .ad-top {
+      width: 100%;
+      height: 56px;
+      flex-shrink: 0;
+      background: #0b0b1a;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1c1c38;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── TWO-COLUMN LAYOUT ── */
+    .layout {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+
+    /* ── LEFT SIDEBAR ── */
+    .sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      background: #0b0b1a;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 18px 12px 14px;
+      gap: 10px;
+    }
+
+    .sidebar-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    /* Leaderboard tabs */
+    .lb-tabs {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .lb-tab {
+      flex: 1;
+      padding: 7px 0;
+      text-align: center;
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-right: 1px solid var(--border);
+      transition: color 0.2s, background 0.2s;
+    }
+    .lb-tab:last-child { border-right: none; }
+    .lb-tab.active { color: var(--cyan); background: rgba(0,212,255,0.06); }
+
+    .lb-panel { display: none; }
+    .lb-panel.active { display: flex; flex-direction: column; gap: 5px; }
+
+    .lb-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .lb-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 9px;
+      background: var(--surface);
+      border: 1px solid transparent;
+      border-radius: 7px;
+      font-size: 0.75rem;
+    }
+    .lb-item.you { border-color: rgba(0,255,136,0.18); }
+    .lb-rank { font-family: 'Orbitron', monospace; font-size: 0.55rem; color: var(--muted); width: 20px; text-align: center; }
+    .lb-rank.r1 { color: var(--gold); }
+    .lb-rank.r2 { color: #c0c0c0; }
+    .lb-rank.r3 { color: #cd7f32; }
+    .lb-name { flex: 1; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.73rem; }
+    .lb-time { font-family: 'Orbitron', monospace; font-size: 0.68rem; color: var(--cyan); }
+    .lb-time.top { color: var(--green); }
+    .lb-empty { text-align: center; color: #252548; font-size: 0.7rem; padding: 10px 0; }
+
+    /* Small ad at bottom of sidebar */
+    .sidebar-ad {
+      margin-top: auto;
+      flex-shrink: 0;
+      border: 1px dashed #1c1c38;
+      border-radius: 8px;
+      height: 160px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: #1c1c38;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── GAME AREA ── */
+    .game-area {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 20px 24px;
+    }
+
+    /* ── TITLE ── */
+    .title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1rem, 2.2vw, 1.6rem);
+      font-weight: 900;
+      letter-spacing: 5px;
+      text-align: center;
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      flex-shrink: 0;
+    }
+
+    /* ── STATS ── */
+    .stats {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      width: 100%;
+      max-width: 420px;
+    }
+    .stat {
+      flex: 1;
+      padding: 10px 6px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-val {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--cyan);
+      line-height: 1;
+    }
+    .stat-val.green { color: var(--green); }
+    .stat-lbl {
+      font-size: 0.55rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 3px;
+    }
+
+    /* ── ZONE ── */
+    .zone {
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: crosshair;
+      user-select: none;
+      flex-shrink: 0;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+    .z-emoji { font-size: 2.4rem; pointer-events: none; }
+    .z-main  {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      transition: color 0.2s, font-size 0.15s;
+      pointer-events: none;
+    }
+    .z-sub {
+      font-size: 0.63rem;
+      color: #28284a;
+      text-align: center;
+      padding: 0 24px;
+      pointer-events: none;
+    }
+
+    /* Zone states */
+    .zone.s-ready {
+      border-color: var(--cyan);
+      background: #0b1420;
+      animation: pulse-ready 1.6s ease-in-out infinite;
+    }
+    .zone.s-ready .z-main { color: var(--cyan); }
+
+    @keyframes pulse-ready {
+      0%,100% { box-shadow: 0 0 28px rgba(0,212,255,0.14); }
+      50%      { box-shadow: 0 0 60px rgba(0,212,255,0.38); }
+    }
+
+    .zone.s-active {
+      border-color: var(--green);
+      border-width: 3px;
+      background: #041a0c;
+      animation: flash-active 0.2s ease-out forwards, pulse-active 0.6s ease-in-out infinite 0.2s;
+    }
+    .zone.s-active .z-main { color: var(--green); font-size: 0.92rem; }
+
+    @keyframes flash-active {
+      0%   { box-shadow: 0 0 130px rgba(0,255,136,0.9); }
+      100% { box-shadow: 0 0 70px  rgba(0,255,136,0.5); }
+    }
+    @keyframes pulse-active {
+      0%,100% { box-shadow: 0 0 60px rgba(0,255,136,0.45); }
+      50%      { box-shadow: 0 0 95px rgba(0,255,136,0.65); }
+    }
+
+    .zone.s-early {
+      border-color: var(--red);
+      background: #1a0408;
+      box-shadow: 0 0 65px rgba(255,68,85,0.45);
+      animation: shake 0.35s ease;
+    }
+    .zone.s-early .z-main { color: var(--red); }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-8px); }
+      40%     { transform: translateX(8px); }
+      60%     { transform: translateX(-5px); }
+      80%     { transform: translateX(5px); }
+    }
+
+    .zone.s-late {
+      border-color: var(--orange);
+      background: #160a04;
+      box-shadow: 0 0 65px rgba(255,136,68,0.4);
+    }
+    .zone.s-late .z-main { color: var(--orange); }
+
+    .zone.s-win {
+      border-color: var(--green);
+      border-width: 3px;
+      background: #041a0c;
+      animation: win-glow 0.3s ease-out forwards;
+    }
+    .zone.s-win .z-main { color: var(--green); font-size: 1.2rem; }
+
+    @keyframes win-glow {
+      0%   { box-shadow: 0 0 150px rgba(0,255,136,1); }
+      100% { box-shadow: 0 0 85px  rgba(0,255,136,0.55); }
+    }
+
+    /* ── TIMER BAR ── */
+    .timer-wrap {
+      width: 260px;
+      flex-shrink: 0;
+      visibility: hidden;
+    }
+    .timer-wrap.show { visibility: visible; }
+    .timer-track {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .timer-fill { height: 100%; width: 0%; border-radius: 2px; transition: none; }
+    .timer-axis { display: flex; justify-content: space-between; margin-top: 4px; }
+    .timer-axis span { font-size: 0.54rem; color: #222244; }
+
+    /* ── STATUS ── */
+    .status {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      min-height: 18px;
+      flex-shrink: 0;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    /* ── HEATMAP ── */
+    .heatmap-row { width: 100%; max-width: 420px; flex-shrink: 0; }
+    .heatmap-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .heatmap-lbl { font-size: 0.56rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+    .heatmap-legend { display: flex; gap: 8px; }
+    .leg { display: flex; align-items: center; gap: 3px; font-size: 0.54rem; color: #35355a; }
+    .leg-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    #heatmap { display: block; width: 100%; border-radius: 6px; }
+    .heatmap-axis { display: flex; justify-content: space-between; margin-top: 3px; }
+    .heatmap-axis span { font-size: 0.52rem; color: #22224a; }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.80);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      max-width: 340px; width: 92%;
+      text-align: center;
+      animation: pop-in 0.22s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes pop-in {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .modal-icon   { font-size: 2.4rem; margin-bottom: 8px; }
+    .modal-title  { font-family: 'Orbitron', monospace; font-size: 0.88rem; color: var(--green); letter-spacing: 2px; }
+    .modal-time   { font-family: 'Orbitron', monospace; font-size: 2.4rem; font-weight: 900; color: var(--green); margin: 10px 0 4px; }
+    .modal-rating { font-size: 0.8rem; color: var(--muted); margin-bottom: 18px; }
+    .modal-input  {
+      width: 100%; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 9px;
+      color: var(--text); padding: 10px 14px;
+      font-size: 0.88rem; font-family: 'Inter', sans-serif;
+      outline: none; text-align: center; margin-bottom: 13px;
+      transition: border-color 0.2s;
+    }
+    .modal-input:focus { border-color: var(--cyan); }
+    .modal-btns { display: flex; gap: 8px; justify-content: center; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      border: none; border-radius: 8px; color: #000; font-weight: 700;
+      padding: 9px 22px; cursor: pointer;
+      font-family: 'Orbitron', monospace; font-size: 0.68rem; letter-spacing: 1px;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--muted); font-size: 0.78rem; padding: 9px 16px;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: border-color 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <!-- TOP AD -->
+  <div class="ad-top">Advertisement · 728×90</div>
+
+  <div class="layout">
+
+    <!-- ── LEFT SIDEBAR: LEADERBOARD ── -->
+    <aside class="sidebar">
+      <div class="sidebar-title">🏆 Leaderboard</div>
+
+      <div class="lb-tabs">
+        <button class="lb-tab active" onclick="switchTab('daily')"  id="tab-daily">📅 Today</button>
+        <button class="lb-tab"        onclick="switchTab('global')" id="tab-global">🌍 Global</button>
+      </div>
+
+      <div class="lb-panel active" id="panel-daily">
+        <ul class="lb-list" id="daily-list"></ul>
+      </div>
+      <div class="lb-panel" id="panel-global">
+        <ul class="lb-list" id="global-list"></ul>
+      </div>
+
+      <!-- Small sidebar ad -->
+      <div class="sidebar-ad">
+        <span>Ad Space</span>
+        <span style="font-size:8px;color:#161632">160 × 160</span>
+      </div>
+    </aside>
+
+    <!-- ── MAIN GAME AREA ── -->
+    <main class="game-area">
+
+      <div class="title">ONE-SECOND REFLEX</div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-val green" id="best-val">—</div>
+          <div class="stat-lbl">Best ms</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="avg-val">—</div>
+          <div class="stat-lbl">Avg ms</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="att-val">0</div>
+          <div class="stat-lbl">Attempts</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="streak-val">0</div>
+          <div class="stat-lbl">Streak</div>
+        </div>
+      </div>
+
+      <!-- Zone -->
+      <div class="zone s-idle" id="zone">
+        <div class="z-emoji" id="z-emoji">🎯</div>
+        <div class="z-main"  id="z-main">HOVER TO PLAY</div>
+        <div class="z-sub"   id="z-sub">Move mouse in · wait · press SPACE</div>
+      </div>
+
+      <!-- Timer bar -->
+      <div class="timer-wrap" id="timer-wrap">
+        <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+        <div class="timer-axis">
+          <span>0ms</span><span id="timer-ms">—</span><span>1000ms</span>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="status" id="status"></div>
+
+      <!-- Heatmap -->
+      <div class="heatmap-row">
+        <div class="heatmap-top">
+          <span class="heatmap-lbl">⚡ Heatmap</span>
+          <div class="heatmap-legend">
+            <div class="leg"><div class="leg-dot" style="background:#00ff88"></div>&lt;200ms</div>
+            <div class="leg"><div class="leg-dot" style="background:#00d4ff"></div>200–400</div>
+            <div class="leg"><div class="leg-dot" style="background:#ffd700"></div>400–700</div>
+            <div class="leg"><div class="leg-dot" style="background:#ff6644"></div>&gt;700ms</div>
+          </div>
+        </div>
+        <canvas id="heatmap" width="700" height="60"></canvas>
+        <div class="heatmap-axis">
+          <span>0ms</span><span>250</span><span>500</span><span>750</span><span>1000ms</span>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /layout -->
+
+  <!-- MODAL -->
+  <div class="modal-backdrop" id="modal" style="display:none">
+    <div class="modal">
+      <div class="modal-icon">🏆</div>
+      <div class="modal-title">LEADERBOARD!</div>
+      <div class="modal-time"   id="modal-time">—</div>
+      <div class="modal-rating" id="modal-rating"></div>
+      <input class="modal-input" id="name-input" type="text" placeholder="Your name…" maxlength="20" autocomplete="off">
+      <div class="modal-btns">
+        <button class="btn-primary" onclick="submitScore()">Submit</button>
+        <button class="btn-ghost"   onclick="skipScore()">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ════════ STATE ════════ */
+    const ST = { IDLE: 0, READY: 1, ACTIVE: 2, RESULT: 3 };
+    let state = ST.IDLE, trigTimer = null, rafId = null, activeStart = null, pendingTime = null;
+    let attempts = 0, wins = 0, streak = 0, bestTime = null;
+
+    const LS = { GLOBAL: 'osr_global_v3', DAILY: 'osr_daily_v3', HISTORY: 'osr_history_v3' };
+
+    const SEED_GLOBAL = [
+      { name: 'NeuralFire',  time:  94 }, { name: 'xXReflexXx', time: 118 },
+      { name: 'QuantumSnap', time: 141 }, { name: 'LightSpeed',  time: 163 },
+      { name: 'ByteStrike',  time: 184 }, { name: 'ZeroLag',     time: 209 },
+      { name: 'PulseHit',    time: 232 }, { name: 'SwiftClick',  time: 258 },
+      { name: 'TurboRef',    time: 277 }, { name: 'CyberTap',    time: 295 },
+    ];
+
+    /* ════════ DOM ════════ */
+    const zone      = document.getElementById('zone');
+    const zEmoji    = document.getElementById('z-emoji');
+    const zMain     = document.getElementById('z-main');
+    const zSub      = document.getElementById('z-sub');
+    const statusEl  = document.getElementById('status');
+    const timerWrap = document.getElementById('timer-wrap');
+    const timerFill = document.getElementById('timer-fill');
+    const timerMsEl = document.getElementById('timer-ms');
+    const modalEl   = document.getElementById('modal');
+    const nameInput = document.getElementById('name-input');
+    const heatCanvas= document.getElementById('heatmap');
+    const hctx      = heatCanvas.getContext('2d');
+
+    /* ════════ STORAGE ════════ */
+    function today() { return new Date().toLocaleDateString('en-US'); }
+
+    function getGlobal() {
+      const raw = localStorage.getItem(LS.GLOBAL);
+      if (!raw) { localStorage.setItem(LS.GLOBAL, JSON.stringify(SEED_GLOBAL)); return SEED_GLOBAL.slice(); }
+      return JSON.parse(raw);
+    }
+    function setGlobal(d) { localStorage.setItem(LS.GLOBAL, JSON.stringify(d)); }
+
+    function getDaily() {
+      const raw = localStorage.getItem(LS.DAILY);
+      const data = raw ? JSON.parse(raw) : null;
+      if (!data || data.date !== today()) return { date: today(), scores: [] };
+      return data;
+    }
+    function setDaily(d) { localStorage.setItem(LS.DAILY, JSON.stringify(d)); }
+
+    function getHistory() {
+      const raw = localStorage.getItem(LS.HISTORY);
+      return raw ? JSON.parse(raw) : [];
+    }
+    function pushHistory(ms) {
+      let h = getHistory();
+      h.push(ms); if (h.length > 100) h = h.slice(-100);
+      localStorage.setItem(LS.HISTORY, JSON.stringify(h));
+      return h;
+    }
+
+    /* ════════ ZONE HIT TEST ════════ */
+    function insideZone(e) {
+      const r = zone.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width  / 2);
+      const dy = e.clientY - (r.top  + r.height / 2);
+      return dx * dx + dy * dy <= (r.width / 2) ** 2;
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      if (state === ST.RESULT) return;
+      if ( insideZone(e) && state === ST.IDLE)  enterZone();
+      if (!insideZone(e) && state === ST.READY) leaveZone();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code !== 'Space') return;
+      e.preventDefault();
+      if (state === ST.READY)  onEarlySpace();
+      if (state === ST.ACTIVE) onTimedSpace();
+    });
+
+    /* ════════ GAME FLOW ════════ */
+    function enterZone() {
+      state = ST.READY;
+      setZone('ready', '⏳', 'STAY STILL...', 'Signal coming at a random time…');
+      setStatus('');
+      trigTimer = setTimeout(goSignal, 1500 + Math.random() * 4000);
+    }
+
+    function leaveZone() {
+      state = ST.IDLE; clearTimeout(trigTimer);
+      setZone('idle', '🎯', 'HOVER TO PLAY', 'Move mouse in · wait · press SPACE');
+      setStatus(''); hideTimer();
+    }
+
+    function goSignal() {
+      state = ST.ACTIVE; activeStart = performance.now();
+      setZone('active', '⚡', 'PRESS SPACE!', 'Within 1 second!');
+      setStatus('⚡  GO!  PRESS SPACE!', '#00ff88');
+      showTimer();
+      const t0 = performance.now();
+      function tick() {
+        const elapsed = performance.now() - t0;
+        const pct = Math.min(100, (elapsed / 1000) * 100);
+        timerFill.style.width      = pct + '%';
+        timerMsEl.textContent      = Math.round(elapsed) + 'ms';
+        timerFill.style.background = `hsl(${Math.round(130 - pct * 1.3)}, 100%, 50%)`;
+        if (elapsed >= 1000) { onTooLate(); return; }
+        rafId = requestAnimationFrame(tick);
+      }
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function onEarlySpace() {
+      cancelAnimationFrame(rafId); clearTimeout(trigTimer);
+      state = ST.RESULT; attempts++; streak = 0; updateStats();
+      setZone('early', '❌', 'TOO EARLY!', 'Wait for the GO signal!');
+      setStatus('🚫  Too Early!', '#ff4455');
+      hideTimer(); resetAfter(2500);
+    }
+
+    function onTooLate() {
+      cancelAnimationFrame(rafId);
+      state = ST.RESULT; attempts++; streak = 0; updateStats();
+      setZone('late', '⏱️', 'TOO LATE!', '1 second has passed');
+      setStatus('⌛  Too Late!', '#ff8844');
+      resetAfter(2500);
+    }
+
+    function onTimedSpace() {
+      cancelAnimationFrame(rafId);
+      const ms = Math.round(performance.now() - activeStart);
+      state = ST.RESULT; attempts++; wins++; streak++;
+      if (bestTime === null || ms < bestTime) bestTime = ms;
+
+      const history = pushHistory(ms);
+      const daily = getDaily();
+      daily.scores.push({ time: ms, ts: Date.now() });
+      daily.scores.sort((a, b) => a.time - b.time);
+      setDaily(daily);
+
+      updateStats(history);
+      setZone('win', '✅', ms + 'ms', getRating(ms));
+      setStatus(`⚡  ${ms}ms · ${getRating(ms)}`, '#00ff88');
+      showTimer();
+
+      const global = getGlobal();
+      if (global.length < 10 || ms < global[global.length - 1].time) openModal(ms);
+
+      drawHeatmap(history);
+      renderDaily(); renderGlobal();
+      resetAfter(2500);
+    }
+
+    function resetAfter(ms) {
+      setTimeout(() => {
+        state = ST.IDLE;
+        setZone('idle', '🎯', 'HOVER TO PLAY', 'Move mouse in · wait · press SPACE');
+        setStatus(''); hideTimer();
+      }, ms);
+    }
+
+    /* ════════ UI HELPERS ════════ */
+    function setZone(cls, emoji, main, sub) {
+      zone.className     = 'zone s-' + cls;
+      zEmoji.textContent = emoji;
+      zMain.textContent  = main;
+      zSub.textContent   = sub;
+    }
+    function setStatus(msg, color) {
+      statusEl.textContent = msg;
+      statusEl.style.color = color || 'var(--muted)';
+    }
+    function showTimer() { timerWrap.classList.add('show'); }
+    function hideTimer() {
+      timerWrap.classList.remove('show');
+      timerFill.style.width = '0%'; timerMsEl.textContent = '—';
+    }
+    function getRating(ms) {
+      if (ms < 150) return '🚀 Superhuman';
+      if (ms < 200) return '⚡ Lightning';
+      if (ms < 250) return '🎯 Excellent';
+      if (ms < 350) return '✨ Great';
+      if (ms < 500) return '👍 Good';
+      if (ms < 700) return '😐 Average';
+      return '🐌 Slow';
+    }
+    function getTimeColor(ms) {
+      if (ms < 200) return [0, 255, 136];
+      if (ms < 400) return [0, 212, 255];
+      if (ms < 700) return [255, 200, 0];
+      return [255, 100, 68];
+    }
+    function updateStats(history) {
+      document.getElementById('best-val').textContent   = bestTime !== null ? bestTime : '—';
+      document.getElementById('att-val').textContent    = attempts;
+      document.getElementById('streak-val').textContent = streak;
+      const h = history || getHistory();
+      if (h.length > 0) document.getElementById('avg-val').textContent =
+        Math.round(h.reduce((a, b) => a + b, 0) / h.length);
+    }
+
+    /* ════════ TABS ════════ */
+    function switchTab(name) {
+      document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.lb-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-'   + name).classList.add('active');
+      document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    /* ════════ MODAL ════════ */
+    function openModal(ms) {
+      pendingTime = ms;
+      document.getElementById('modal-time').textContent   = ms + 'ms';
+      document.getElementById('modal-rating').textContent = getRating(ms);
+      modalEl.style.display = 'flex';
+      setTimeout(() => nameInput.focus(), 80);
+    }
+    function submitScore() {
+      if (pendingTime === null) return;
+      const name = sanitize(nameInput.value.trim() || 'Anonymous');
+      const global = getGlobal();
+      global.push({ name, time: pendingTime });
+      global.sort((a, b) => a.time - b.time);
+      if (global.length > 10) global.pop();
+      setGlobal(global); closeModal(); renderGlobal(); switchTab('global');
+    }
+    function skipScore() { closeModal(); }
+    function closeModal() { modalEl.style.display = 'none'; nameInput.value = ''; pendingTime = null; }
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter')  submitScore();
+      if (e.key === 'Escape') skipScore();
+    });
+    function sanitize(str) {
+      const d = document.createElement('div'); d.textContent = str; return d.innerHTML.slice(0, 20);
+    }
+
+    /* ════════ HEATMAP ════════ */
+    function drawHeatmap(history) {
+      const W = heatCanvas.width, H = heatCanvas.height;
+      hctx.clearRect(0, 0, W, H);
+      hctx.fillStyle = '#06060e';
+      hctx.fillRect(0, 0, W, H);
+
+      [{ s:0,e:200,c:'rgba(0,255,136,0.07)'},{s:200,e:400,c:'rgba(0,212,255,0.05)'},
+       { s:400,e:700,c:'rgba(255,200,0,0.04)'},{s:700,e:1000,c:'rgba(255,100,68,0.04)'}]
+        .forEach(z => {
+          hctx.fillStyle = z.c;
+          hctx.fillRect((z.s/1000)*W, 0, ((z.e-z.s)/1000)*W, H*0.46);
+        });
+
+      for (let i = 0; i <= 10; i++) {
+        const x = Math.round((i/10)*W);
+        hctx.strokeStyle = i % 5 === 0 ? '#181834' : '#0e0e22';
+        hctx.lineWidth = 1;
+        hctx.beginPath(); hctx.moveTo(x, 0); hctx.lineTo(x, H); hctx.stroke();
+      }
+
+      if (!history.length) {
+        hctx.fillStyle = '#1c1c3a'; hctx.font = '11px Inter';
+        hctx.textAlign = 'center';
+        hctx.fillText('Play to build your heatmap', W / 2, H / 2 + 4);
+        return;
+      }
+
+      const BUCKETS = 100, bW = W / BUCKETS;
+      const buckets = new Array(BUCKETS).fill(0);
+      history.forEach(t => { buckets[Math.min(BUCKETS-1, Math.floor((t/1000)*BUCKETS))]++; });
+      const maxB = Math.max(...buckets, 1);
+      buckets.forEach((cnt, i) => {
+        if (!cnt) return;
+        const [r,g,b] = getTimeColor((i/BUCKETS)*1000);
+        const grad = hctx.createLinearGradient(0, 0, 0, H*0.45);
+        grad.addColorStop(0, `rgba(${r},${g},${b},${(cnt/maxB).toFixed(2)})`);
+        grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        hctx.fillStyle = grad;
+        hctx.fillRect(i * bW, 0, bW + 0.5, H * 0.45);
+      });
+
+      hctx.strokeStyle = '#181834'; hctx.lineWidth = 1;
+      hctx.beginPath(); hctx.moveTo(0, H*0.5); hctx.lineTo(W, H*0.5); hctx.stroke();
+
+      history.forEach((t, i) => {
+        const x = Math.round((t / 1000) * W);
+        const alpha = 0.25 + (i / history.length) * 0.75;
+        const [r,g,b] = getTimeColor(t);
+        hctx.strokeStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+        hctx.lineWidth = 1.5;
+        hctx.beginPath(); hctx.moveTo(x, H*0.54); hctx.lineTo(x, H*0.93); hctx.stroke();
+      });
+    }
+
+    /* ════════ LEADERBOARDS ════════ */
+    function rankClass(i) { return ['r1','r2','r3'][i] || ''; }
+    function rankLabel(i) { return i === 0 ? '👑' : '#' + (i + 1); }
+
+    function renderDaily() {
+      const el = document.getElementById('daily-list');
+      const scores = getDaily().scores.slice(0, 7);
+      if (!scores.length) { el.innerHTML = '<div class="lb-empty">No scores yet today</div>'; return; }
+      el.innerHTML = scores.map((s, i) => `
+        <li class="lb-item${i===0?' you':''}">
+          <span class="lb-rank ${rankClass(i)}">${rankLabel(i)}</span>
+          <span class="lb-name">You</span>
+          <span class="lb-time${i===0?' top':''}">${s.time}ms</span>
+        </li>`).join('');
+    }
+
+    function renderGlobal() {
+      const el = document.getElementById('global-list');
+      el.innerHTML = getGlobal().map((s, i) => `
+        <li class="lb-item">
+          <span class="lb-rank ${rankClass(i)}">${rankLabel(i)}</span>
+          <span class="lb-name">${s.name}</span>
+          <span class="lb-time${i===0?' top':''}">${s.time}ms</span>
+        </li>`).join('');
+    }
+
+    /* ════════ INIT ════════ */
+    (function init() {
+      const h = getHistory();
+      if (h.length) { bestTime = Math.min(...h); updateStats(h); }
+      drawHeatmap(h); renderDaily(); renderGlobal();
+    })();
+  </script>
+</body>
+</html>
