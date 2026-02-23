@@ -406,6 +406,76 @@
       cursor: pointer; font-family: 'Inter', sans-serif; transition: border-color 0.2s;
     }
     .btn-ghost:hover { border-color: var(--muted); }
+
+    /* ── TUTORIAL MODAL ── */
+    .tutorial-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px 28px;
+      max-width: 380px; width: 92%;
+      text-align: center;
+      animation: pop-in 0.28s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    .tutorial-header {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+    .tutorial-subtitle {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 22px;
+      letter-spacing: 0.5px;
+    }
+    .tutorial-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .tutorial-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 13px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 11px 14px;
+    }
+    .tutorial-step-icon {
+      font-size: 1.35rem;
+      flex-shrink: 0;
+      line-height: 1;
+      margin-top: 1px;
+    }
+    .tutorial-step-body {}
+    .tutorial-step-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.62rem;
+      color: var(--text);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .tutorial-step-desc {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .tutorial-step-desc strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+    .tutorial-step-desc em {
+      color: var(--green);
+      font-style: normal;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -501,6 +571,46 @@
     </main>
   </div><!-- /layout -->
 
+  <!-- TUTORIAL MODAL -->
+  <div class="modal-backdrop" id="tutorial-modal" style="display:none">
+    <div class="tutorial-modal">
+      <div class="modal-icon">🎮</div>
+      <div class="tutorial-header">How to Play</div>
+      <div class="tutorial-subtitle">Test your reaction time — can you beat 200ms?</div>
+      <div class="tutorial-steps">
+        <div class="tutorial-step">
+          <div class="tutorial-step-icon">🖱️</div>
+          <div class="tutorial-step-body">
+            <div class="tutorial-step-title">Hover the circle</div>
+            <div class="tutorial-step-desc">Move your mouse into the <strong>glowing circle</strong> to arm the game. Stay inside!</div>
+          </div>
+        </div>
+        <div class="tutorial-step">
+          <div class="tutorial-step-icon">⏳</div>
+          <div class="tutorial-step-body">
+            <div class="tutorial-step-title">Wait for the signal</div>
+            <div class="tutorial-step-desc">The circle will turn <em>green</em> at a random time — anywhere from 1.5 to 5.5 seconds. Don't press early!</div>
+          </div>
+        </div>
+        <div class="tutorial-step">
+          <div class="tutorial-step-icon">⚡</div>
+          <div class="tutorial-step-body">
+            <div class="tutorial-step-title">Press SPACE — fast!</div>
+            <div class="tutorial-step-desc">Hit <strong>SPACE</strong> the moment you see the flash. You have <em>1 second</em> before it's too late.</div>
+          </div>
+        </div>
+        <div class="tutorial-step">
+          <div class="tutorial-step-icon">🏆</div>
+          <div class="tutorial-step-body">
+            <div class="tutorial-step-title">Beat the leaderboard</div>
+            <div class="tutorial-step-desc">Great reactions land under <em>250ms</em>. Elite players hit under <strong>150ms</strong>. How fast are you?</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" style="width:100%;padding:11px 0;font-size:0.72rem;" onclick="closeTutorial()">LET'S GO ⚡</button>
+    </div>
+  </div>
+
   <!-- MODAL -->
   <div class="modal-backdrop" id="modal" style="display:none">
     <div class="modal">
@@ -522,7 +632,7 @@
     let state = ST.IDLE, trigTimer = null, rafId = null, activeStart = null, pendingTime = null;
     let attempts = 0, wins = 0, streak = 0, bestTime = null;
 
-    const LS = { GLOBAL: 'osr_global_v3', DAILY: 'osr_daily_v3', HISTORY: 'osr_history_v3' };
+    const LS = { GLOBAL: 'osr_global_v3', DAILY: 'osr_daily_v3', HISTORY: 'osr_history_v3', TUTORIAL: 'osr_tutorial_seen' };
 
     const SEED_GLOBAL = [
       { name: 'NeuralFire',  time:  94 }, { name: 'xXReflexXx', time: 118 },
@@ -725,6 +835,16 @@
       document.getElementById('panel-' + name).classList.add('active');
     }
 
+    /* ════════ TUTORIAL ════════ */
+    const tutorialEl = document.getElementById('tutorial-modal');
+    function closeTutorial() {
+      tutorialEl.style.display = 'none';
+      localStorage.setItem(LS.TUTORIAL, '1');
+    }
+    tutorialEl.addEventListener('click', (e) => {
+      if (e.target === tutorialEl) closeTutorial();
+    });
+
     /* ════════ MODAL ════════ */
     function openModal(ms) {
       pendingTime = ms;
@@ -838,6 +958,9 @@
       const h = getHistory();
       if (h.length) { bestTime = Math.min(...h); updateStats(h); }
       drawHeatmap(h); renderDaily(); renderGlobal();
+      if (!localStorage.getItem(LS.TUTORIAL)) {
+        tutorialEl.style.display = 'flex';
+      }
     })();
   </script>
 </body>
