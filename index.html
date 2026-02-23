@@ -453,7 +453,6 @@
       line-height: 1;
       margin-top: 1px;
     }
-    .tutorial-step-body {}
     .tutorial-step-title {
       font-family: 'Orbitron', monospace;
       font-size: 0.62rem;
@@ -626,21 +625,60 @@
     </div>
   </div>
 
+  <!-- Firebase (compat SDK — no bundler needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    /* ════════ FIREBASE ════════ */
+    firebase.initializeApp({
+      apiKey:            "AIzaSyAiCKg2v1RwKRLiUH8UUfjFDTJZqRCqezQ",
+      authDomain:        "onesecondreflex.firebaseapp.com",
+      projectId:         "onesecondreflex",
+      storageBucket:     "onesecondreflex.firebasestorage.app",
+      messagingSenderId: "608224947368",
+      appId:             "1:608224947368:web:989584cbb858544601a69d"
+    });
+    const db = firebase.firestore();
+    const lbRef = db.collection('leaderboard');
+
+    /* live cache — updated by onSnapshot */
+    let globalScores = [];
+
+    function setupFirestore() {
+      const el = document.getElementById('global-list');
+      el.innerHTML = '<div class="lb-empty" style="color:#1e1e3a">Loading…</div>';
+
+      lbRef.orderBy('time', 'asc').limit(10)
+        .onSnapshot(snap => {
+          globalScores = snap.docs.map(d => d.data());
+          renderGlobal();
+        }, () => {
+          el.innerHTML = '<div class="lb-empty">Could not load — check connection</div>';
+        });
+    }
+
+    async function pushGlobalScore(name, time) {
+      await lbRef.add({ name, time, ts: Date.now() });
+
+      /* prune: keep only top 10 */
+      const snap = await lbRef.orderBy('time', 'asc').get();
+      if (snap.size > 10) {
+        const batch = db.batch();
+        snap.docs.slice(10).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+  </script>
+
   <script>
     /* ════════ STATE ════════ */
     const ST = { IDLE: 0, READY: 1, ACTIVE: 2, RESULT: 3 };
     let state = ST.IDLE, trigTimer = null, rafId = null, activeStart = null, pendingTime = null;
     let attempts = 0, wins = 0, streak = 0, bestTime = null;
 
-    const LS = { GLOBAL: 'osr_global_v3', DAILY: 'osr_daily_v3', HISTORY: 'osr_history_v3', TUTORIAL: 'osr_tutorial_seen' };
+    const LS = { DAILY: 'osr_daily_v3', HISTORY: 'osr_history_v3', TUTORIAL: 'osr_tutorial_seen' };
 
-    const SEED_GLOBAL = [
-      { name: 'NeuralFire',  time:  94 }, { name: 'xXReflexXx', time: 118 },
-      { name: 'QuantumSnap', time: 141 }, { name: 'LightSpeed',  time: 163 },
-      { name: 'ByteStrike',  time: 184 }, { name: 'ZeroLag',     time: 209 },
-      { name: 'PulseHit',    time: 232 }, { name: 'SwiftClick',  time: 258 },
-      { name: 'TurboRef',    time: 277 }, { name: 'CyberTap',    time: 295 },
-    ];
 
     /* ════════ DOM ════════ */
     const zone      = document.getElementById('zone');
@@ -658,13 +696,6 @@
 
     /* ════════ STORAGE ════════ */
     function today() { return new Date().toLocaleDateString('en-US'); }
-
-    function getGlobal() {
-      const raw = localStorage.getItem(LS.GLOBAL);
-      if (!raw) { localStorage.setItem(LS.GLOBAL, JSON.stringify(SEED_GLOBAL)); return SEED_GLOBAL.slice(); }
-      return JSON.parse(raw);
-    }
-    function setGlobal(d) { localStorage.setItem(LS.GLOBAL, JSON.stringify(d)); }
 
     function getDaily() {
       const raw = localStorage.getItem(LS.DAILY);
@@ -771,8 +802,7 @@
       setStatus(`⚡  ${ms}ms · ${getRating(ms)}`, '#00ff88');
       showTimer();
 
-      const global = getGlobal();
-      if (global.length < 10 || ms < global[global.length - 1].time) openModal(ms);
+      if (globalScores.length < 10 || ms < globalScores[globalScores.length - 1].time) openModal(ms);
 
       drawHeatmap(history);
       renderDaily(); renderGlobal();
@@ -856,11 +886,17 @@
     function submitScore() {
       if (pendingTime === null) return;
       const name = sanitize(nameInput.value.trim() || 'Anonymous');
-      const global = getGlobal();
-      global.push({ name, time: pendingTime });
-      global.sort((a, b) => a.time - b.time);
-      if (global.length > 10) global.pop();
-      setGlobal(global); closeModal(); renderGlobal(); switchTab('global');
+      const time = pendingTime;
+      closeModal();
+      switchTab('global');
+      /* optimistic UI update while the write completes */
+      const optimistic = [...globalScores, { name, time }].sort((a,b) => a.time - b.time).slice(0, 10);
+      globalScores = optimistic;
+      renderGlobal();
+      pushGlobalScore(name, time).catch(() => {
+        document.getElementById('global-list').innerHTML =
+          '<div class="lb-empty">Save failed — check connection</div>';
+      });
     }
     function skipScore() { closeModal(); }
     function closeModal() { modalEl.style.display = 'none'; nameInput.value = ''; pendingTime = null; }
@@ -945,7 +981,8 @@
 
     function renderGlobal() {
       const el = document.getElementById('global-list');
-      el.innerHTML = getGlobal().map((s, i) => `
+      if (!globalScores.length) { el.innerHTML = '<div class="lb-empty">No scores yet — be the first!</div>'; return; }
+      el.innerHTML = globalScores.map((s, i) => `
         <li class="lb-item">
           <span class="lb-rank ${rankClass(i)}">${rankLabel(i)}</span>
           <span class="lb-name">${s.name}</span>
@@ -957,7 +994,8 @@
     (function init() {
       const h = getHistory();
       if (h.length) { bestTime = Math.min(...h); updateStats(h); }
-      drawHeatmap(h); renderDaily(); renderGlobal();
+      drawHeatmap(h); renderDaily();
+      setupFirestore();
       if (!localStorage.getItem(LS.TUTORIAL)) {
         tutorialEl.style.display = 'flex';
       }
